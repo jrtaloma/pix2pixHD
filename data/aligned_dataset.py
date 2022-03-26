@@ -31,7 +31,7 @@ class AlignedDataset(BaseDataset):
             self.feat_paths = sorted(make_dataset(self.dir_feat))
 
         self.dataset_size = len(self.A_paths) 
-      
+
     def __getitem__(self, index):        
         ### input A (label maps)
         A_path = self.A_paths[index]              
