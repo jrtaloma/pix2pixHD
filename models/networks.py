@@ -3,6 +3,7 @@ import torch.nn as nn
 import functools
 from torch.autograd import Variable
 import numpy as np
+from unet.unet import UNet
 
 ###############################################################################
 # Functions
@@ -34,13 +35,16 @@ def define_G(input_nc, output_nc, ngf, netG, n_downsample_global=3, n_blocks_glo
                                   n_local_enhancers, n_blocks_local, norm_layer)
     elif netG == 'encoder':
         netG = Encoder(input_nc, output_nc, ngf, n_downsample_global, norm_layer)
+    elif netG == 'unet':
+        netG = UNet(input_nc, output_nc, bilinear=False)
     else:
         raise('generator not implemented!')
     print(netG)
     if len(gpu_ids) > 0:
         assert(torch.cuda.is_available())   
         netG.cuda(gpu_ids[0])
-    netG.apply(weights_init)
+    if not type(netG).__name__ == 'UNet':
+        netG.apply(weights_init)
     return netG
 
 def define_D(input_nc, ndf, n_layers_D, norm='instance', use_sigmoid=False, num_D=1, getIntermFeat=False, gpu_ids=[]):        
