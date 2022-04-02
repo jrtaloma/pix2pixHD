@@ -5,9 +5,10 @@ from models.models import create_model
 import util.util as util
 import torch
 import numpy as np
-import lpips
-from skimage.metrics import peak_signal_noise_ratio
-from skimage.metrics import structural_similarity
+from pytorch_msssim import ssim
+from tqdm import tqdm
+import torchmetrics
+
 
 opt = TestOptions().parse(save=False)
 opt.nThreads = 1   # test code only supports nThreads = 1
@@ -30,32 +31,32 @@ PSNR = 0
 SSIM = 0
 LPIPS = 0
 
-loss_fn_vgg = lpips.LPIPS(net='vgg')
-loss_fn_vgg.requires_grad_(False)
+psnr_metric = torchmetrics.PeakSignalNoiseRatio(data_range=1.0).to('cuda')
+lpips_metric = torchmetrics.image.lpip.LearnedPerceptualImagePatchSimilarity().to('cuda')
 
-for i,data in enumerate(dataset):
+
+for i,data in tqdm(enumerate(dataset), total=len(dataset)):
     with torch.no_grad():
         generated = model.inference(data['label'], data['inst'], data['image'])
-    print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
+    # print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
-    generated = generated.cpu()
-    target = data['image']
+    target = data['image'].to('cuda')
 
     # LPIPS
-    LPIPS += loss_fn_vgg(target, generated).item()
+    LPIPS += lpips_metric(target, generated).item()
 
     # Scale in [0,1]
-    generated = (generated * 0.5 + 0.5).data.numpy()
-    target  =  (target * 0.5 + 0.5).data.numpy()
+    generated = generated * 0.5 + 0.5
+    target = target * 0.5 + 0.5
 
     # MSE
-    MSE += np.mean(np.square(target-generated))
+    MSE += torch.mean(torch.square(target-generated))
 
     # PSNR
-    PSNR += peak_signal_noise_ratio(target, generated, data_range=1.0)
+    PSNR += psnr_metric(target, generated)
 
     # SSIM
-    SSIM += structural_similarity(target[0], generated[0], data_range=1.0, channel_axis=0, gaussian_weights=True, sigma=1.5, use_sample_covariance=False)
+    SSIM += ssim(target, generated, data_range=1.0, size_average=True)
 
 MSE /= len(dataset)
 PSNR /= len(dataset)
