@@ -41,3 +41,4 @@ test/data/legacy_serialized.pt
 demo.py
 datasets/BraTS_2019/
 out
+pred
