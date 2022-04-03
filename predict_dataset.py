@@ -24,6 +24,7 @@ if opt.verbose:
     print(model)
 
 assert opt.name in ['brats_t1_t1ce', 'brats_t1_t2'], '{opt.name} is not supported'
+source_modality = 't1'
 target_modality = 't1ce' if opt.name == 'brats_t1_t1ce' else 't2'
 
 save_img_path = os.path.join('./pred', opt.name, opt.phase)
@@ -36,15 +37,27 @@ for i,data in enumerate(dataset):
         generated = model.inference(data['label'], data['inst'], data['image'])
     print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
+    source = data['label'].cpu().data.numpy()
     generated = generated.cpu().data.numpy()
 
     # [N, H, W, C]
+    source = np.transpose(source, (0,2,3,1))
     generated = np.transpose(generated, (0,2,3,1))
 
     # scale from [-1,1] to [0,255]
+    source = ((source * 0.5 + 0.5) * 255.0).astype(np.uint8)
     generated = ((generated * 0.5 + 0.5) * 255.0).astype(np.uint8)
 
-    # save image
+    # save source image
+    image = Image.fromarray(source[0], 'RGB')
+    path = data['path'][0].split('/')[-3]
+    path = os.path.join(save_img_path, path, source_modality)
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    filename = data['path'][0].split('/')[-1]
+    image.save(os.path.join(path, filename))
+
+    # save target image
     image = Image.fromarray(generated[0], 'RGB')
     path = data['path'][0].split('/')[-3]
     path = os.path.join(save_img_path, path, target_modality)
