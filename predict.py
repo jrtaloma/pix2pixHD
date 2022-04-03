@@ -10,7 +10,7 @@ from PIL import Image
 opt = TestOptions().parse(save=False)
 opt.nThreads = 1   # test code only supports nThreads = 1
 opt.batchSize = 1  # test code only supports batchSize = 1
-opt.serial_batches = False  # shuffle
+opt.serial_batches = True  # no shuffle
 opt.no_flip = True  # no flip
 opt.use_encoded_image = True # load encoded image for evaluation
 
@@ -27,11 +27,14 @@ save_img_path = './out'
 if not os.path.isdir(save_img_path):
     os.mkdir(save_img_path)
 
-max_images = 200
+max_images = 100
+# fix random seed
+rng = np.random.RandomState(0)
+indexes = rng.randint(0, len(dataset), (max_images))
 
 for i,data in enumerate(dataset):
-    if i == max_images:
-        break
+    if not i in indexes:
+        continue
     with torch.no_grad():
         generated = model.inference(data['label'], data['inst'], data['image'])
     print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
