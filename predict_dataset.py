@@ -34,10 +34,10 @@ if not os.path.isdir(save_img_path):
 
 for i,data in enumerate(dataset):
     with torch.no_grad():
-        generated = model.inference(data['label'], data['inst'], data['image'])
+        generated = model.inference(data['input'], data['target'])
     print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
-    source = data['label'].cpu().data.numpy()
+    source = data['input'].cpu().data.numpy()
     generated = generated.cpu().data.numpy()
 
     # [N, H, W, C]

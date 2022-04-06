@@ -37,10 +37,10 @@ lpips_metric = torchmetrics.image.lpip.LearnedPerceptualImagePatchSimilarity().t
 
 for i,data in tqdm(enumerate(dataset), total=len(dataset)):
     with torch.no_grad():
-        generated = model.inference(data['label'], data['inst'], data['image'])
+        generated = model.inference(data['input'], data['target'])
     # print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
-    target = data['image'].to('cuda')
+    target = data['target'].to('cuda')
 
     # LPIPS
     LPIPS += lpips_metric(target, generated).item()

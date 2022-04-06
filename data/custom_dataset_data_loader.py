@@ -1,4 +1,6 @@
+import numpy as np
 import torch.utils.data
+from torch.utils.data import WeightedRandomSampler
 from data.base_data_loader import BaseDataLoader
 
 
@@ -18,11 +20,31 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def initialize(self, opt):
         BaseDataLoader.initialize(self, opt)
         self.dataset = CreateDataset(opt)
-        self.dataloader = torch.utils.data.DataLoader(
-            self.dataset,
-            batch_size=opt.batchSize,
-            shuffle=not opt.serial_batches,
-            num_workers=int(opt.nThreads))
+        # Default data loader
+        if opt.no_segmentation:
+            self.dataloader = torch.utils.data.DataLoader(
+                self.dataset,
+                batch_size=opt.batchSize,
+                shuffle=not opt.serial_batches,
+                num_workers=int(opt.nThreads))
+        # Data loader with weighted random sampler
+        else:
+            labels = np.array(self.dataset.labels).astype(float)
+            _, counts = np.unique(labels, return_counts=True)
+            # |negatives| > |positives|
+            if counts[0] > counts[1]:
+                for i in range(len(labels)):
+                    labels[i] = counts[0]/counts[1] if labels[i] == 1 else 1
+            # |positives| > |negatives|
+            else:
+                for i in range(len(labels)):
+                    labels[i] = counts[1]/counts[0] if labels[i] == 0 else 1
+            sampler = WeightedRandomSampler(labels, len(labels), replacement=True)
+            self.dataloader = torch.utils.data.DataLoader(
+                self.dataset,
+                batch_size=opt.batchSize,
+                sampler=sampler,
+                num_workers=int(opt.nThreads))
 
     def load_data(self):
         return self.dataloader

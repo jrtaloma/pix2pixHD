@@ -36,12 +36,12 @@ for i,data in enumerate(dataset):
     if not i in indexes:
         continue
     with torch.no_grad():
-        generated = model.inference(data['label'], data['inst'], data['image'])
+        generated = model.inference(data['input'], data['target'])
     print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
-    source = data['label'].cpu().data.numpy()
+    source = data['input'].cpu().data.numpy()
     generated = generated.cpu().data.numpy()
-    target = data['image'].cpu().data.numpy()
+    target = data['target'].cpu().data.numpy()
 
     # [N, H, W, C]
     source = np.transpose(source, (0,2,3,1))
