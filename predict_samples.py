@@ -32,11 +32,14 @@ max_images = 100
 rng = np.random.RandomState(0)
 indexes = rng.randint(0, len(dataset), (max_images))
 
+# color palette
+palette = rng.randint(0, 256, (256, 3), dtype=np.uint8)
+
 for i,data in enumerate(dataset):
     if not i in indexes:
         continue
     with torch.no_grad():
-        generated = model.inference(data['input'], data['target'])
+        generated = model.inference(data['input'], data['seg'], data['target'])
     print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
     source = data['input'].cpu().data.numpy()
@@ -55,10 +58,11 @@ for i,data in enumerate(dataset):
     generated = ((generated * 0.5 + 0.5) * 255.0).astype(np.uint8)
     target  =  ((target * 0.5 + 0.5) * 255.0).astype(np.uint8)
     if not opt.no_segmentation:
-        seg  =  ((seg * 0.5 + 0.5) * 255.0).astype(np.uint8)
+        seg = np.squeeze(seg)
+        seg = palette[seg]
 
     # concatenate along width
-    images = np.concatenate((source[0], generated[0], target[0], seg[0]), 1)
+    images = np.concatenate((source[0], generated[0], target[0], seg), 1)
     images = Image.fromarray(images, 'RGB')
     filename = data['path'][0].split('/')[-1]
     images.save(os.path.join(save_img_path, filename))

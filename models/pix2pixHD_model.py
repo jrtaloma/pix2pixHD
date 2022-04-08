@@ -10,10 +10,10 @@ class Pix2PixHDModel(BaseModel):
     def name(self):
         return 'Pix2PixHDModel'
     
-    def init_loss_filter(self, use_gan_feat_loss, use_vgg_loss):
-        flags = (True, use_gan_feat_loss, use_vgg_loss, True, True)
-        def loss_filter(g_gan, g_gan_feat, g_vgg, d_real, d_fake):
-            return [l for (l,f) in zip((g_gan,g_gan_feat,g_vgg,d_real,d_fake),flags) if f]
+    def init_loss_filter(self, use_gan_feat_loss, use_vgg_loss, use_segmentation_loss):
+        flags = (True, use_gan_feat_loss, use_vgg_loss, True, True, use_segmentation_loss)
+        def loss_filter(g_gan, g_gan_feat, g_vgg, d_real, d_fake, g_segmentation):
+            return [l for (l,f) in zip((g_gan,g_gan_feat,g_vgg,d_real,d_fake,g_segmentation),flags) if f]
         return loss_filter
     
     def initialize(self, opt):
@@ -27,7 +27,9 @@ class Pix2PixHDModel(BaseModel):
 
         ##### define networks        
         # Generator network
-        netG_input_nc = input_nc                      
+        netG_input_nc = input_nc   
+        if not opt.no_segmentation:
+            netG_input_nc += 1                   
         self.netG = networks.define_G(netG_input_nc, opt.output_nc, opt.ngf, opt.netG, 
                                       opt.n_downsample_global, opt.n_blocks_global, opt.n_local_enhancers, 
                                       opt.n_blocks_local, opt.norm, gpu_ids=self.gpu_ids)        
@@ -63,16 +65,19 @@ class Pix2PixHDModel(BaseModel):
             self.old_lr = opt.lr
 
             # define loss functions
-            self.loss_filter = self.init_loss_filter(not opt.no_ganFeat_loss, not opt.no_vgg_loss)
+            self.loss_filter = self.init_loss_filter(not opt.no_ganFeat_loss, not opt.no_vgg_loss, not opt.no_segmentation_loss)
             
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)   
             self.criterionFeat = torch.nn.L1Loss()
             if not opt.no_vgg_loss:             
                 self.criterionVGG = networks.VGGLoss(self.gpu_ids)
+
+            if not opt.no_segmentation_loss:
+                self.criterionSegmentation = networks.SegmentationLoss(self.opt)
                 
         
             # Names so we can breakout loss
-            self.loss_names = self.loss_filter('G_GAN','G_GAN_Feat','G_VGG','D_real', 'D_fake')
+            self.loss_names = self.loss_filter('G_GAN','G_GAN_Feat','G_VGG','D_real', 'D_fake', 'Segmentation_Loss')
 
             # initialize optimizers
             # optimizer G
@@ -102,15 +107,22 @@ class Pix2PixHDModel(BaseModel):
             params = list(self.netD.parameters())    
             self.optimizer_D = torch.optim.Adam(params, lr=opt.lr, betas=(opt.beta1, 0.999))
 
-    def encode_input(self, input_image, target_image=None, infer=False):             
+    def encode_input(self, input_image, seg_map=None, target_image=None, infer=False):             
         input_image = input_image.data.cuda()
+
+        # get edges from segmentation map
+        if not self.opt.no_segmentation:
+            seg_map = seg_map.data.cuda()
+            edge_map = self.get_edges(seg_map)
+            input_image = torch.cat((input_image, edge_map), dim=1)
+
         input_image = Variable(input_image, volatile=infer)
 
         # real images for training
         if target_image is not None:
             target_image = Variable(target_image.data.cuda())
 
-        return input_image, target_image
+        return input_image, seg_map, target_image
 
     def discriminate(self, input_image, test_image, use_pool=False):
         input_concat = torch.cat((input_image, test_image.detach()), dim=1)
@@ -120,9 +132,9 @@ class Pix2PixHDModel(BaseModel):
         else:
             return self.netD.forward(input_concat)
 
-    def forward(self, input_image, target_image, infer=False):
+    def forward(self, input_image, seg_map, target_image, infer=False):
         # Encode Inputs
-        input_image, target_image = self.encode_input(input_image, target_image)  
+        input_image, seg_map, target_image = self.encode_input(input_image, seg_map, target_image)  
 
         # Fake Generation                    
         fake_image = self.netG.forward(input_image)
@@ -138,7 +150,12 @@ class Pix2PixHDModel(BaseModel):
         # GAN loss (Fake Passability Loss)        
         pred_fake = self.netD.forward(torch.cat((input_image, fake_image), dim=1))        
         loss_G_GAN = self.criterionGAN(pred_fake, True)               
-        
+
+        loss_G_segmentation = 0
+        pred_segmentation = torch.zeros_like(fake_image) - 1
+        if not self.opt.no_segmentation_loss :
+            loss_G_segmentation, pred_segmentation = self.criterionSegmentation(fake_image,seg_map)
+
         # GAN feature matching loss
         loss_G_GAN_Feat = 0
         if not self.opt.no_ganFeat_loss:
@@ -155,12 +172,12 @@ class Pix2PixHDModel(BaseModel):
             loss_G_VGG = self.criterionVGG(fake_image, target_image) * self.opt.lambda_feat
         
         # Only return the fake_B image if necessary to save BW
-        return [ self.loss_filter( loss_G_GAN, loss_G_GAN_Feat, loss_G_VGG, loss_D_real, loss_D_fake ), None if not infer else fake_image ]
+        return [ self.loss_filter( loss_G_GAN, loss_G_GAN_Feat, loss_G_VGG, loss_D_real, loss_D_fake, loss_G_segmentation ), None if not infer else fake_image, pred_segmentation ]
 
-    def inference(self, input_image, target_image=None):
+    def inference(self, input_image, seg, target_image=None):
         # Encode Inputs        
         target_image = Variable(target_image) if target_image is not None else None
-        input_image, target_image = self.encode_input(Variable(input_image), target_image, infer=True)
+        input_image, seg_map, target_image = self.encode_input(Variable(input_image), Variable(seg), target_image, infer=True)
 
         # Fake Generation                         
         if torch.__version__.startswith('0.4'):
@@ -209,5 +226,5 @@ class Pix2PixHDModel(BaseModel):
 
 class InferenceModel(Pix2PixHDModel):
     def forward(self, inp):
-        input_image = inp
-        return self.inference(input_image)
+        input_image, seg = inp
+        return self.inference(input_image, seg)

@@ -4,6 +4,9 @@ import functools
 from torch.autograd import Variable
 import numpy as np
 from unet.unet import UNet
+from models.segmentation_loss import UNet as UNetSegmentation
+from models.segmentation_loss import dice_loss
+from torch.nn import functional as F
 
 ###############################################################################
 # Functions
@@ -126,6 +129,26 @@ class VGGLoss(nn.Module):
         for i in range(len(x_vgg)):
             loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())        
         return loss
+
+class SegmentationLoss(nn.Module):
+    def __init__(self, opt):
+        super(SegmentationLoss, self).__init__()
+        self.unet = UNetSegmentation(n_channels=opt.unet_input_channels,n_classes=opt.unet_n_classes)
+        self.unet.load_state_dict(torch.load(opt.unet_model_weights))
+        if len(opt.gpu_ids) != 0 :
+            self.unet = self.unet.cuda()
+        self.unet.eval()
+        self.criterion = nn.CrossEntropyLoss(torch.as_tensor([1.0,2]).to('cuda' if len(opt.gpu_ids) != 0 else 'cpu'))
+
+    def forward(self, x, mask_true):
+        masks_pred = self.unet(x)
+        true_masks = mask_true[:,0]
+        loss = self.criterion(masks_pred, true_masks) \
+                + dice_loss(F.softmax(masks_pred, dim=1).float(),
+                            F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
+                            multiclass=True)
+        pred_to_save = masks_pred.argmax(dim=1,keepdim=True).repeat(1,3,1,1) * 2 - 1 
+        return 10 * loss, pred_to_save
 
 ##############################################################################
 # Generator

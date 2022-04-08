@@ -21,7 +21,7 @@ class CustomDatasetDataLoader(BaseDataLoader):
         BaseDataLoader.initialize(self, opt)
         self.dataset = CreateDataset(opt)
         # Default data loader
-        if opt.no_segmentation:
+        if not opt.isTrain or not opt.use_weighted_random_sampler:
             self.dataloader = torch.utils.data.DataLoader(
                 self.dataset,
                 batch_size=opt.batchSize,

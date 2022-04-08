@@ -31,6 +31,7 @@ class BaseOptions():
 
         # for setting inputs
         self.parser.add_argument('--dataroot', type=str, default='./datasets/cityscapes/') 
+        self.parser.add_argument('--class_labels', nargs="+", default=[0, 255], help='class labels in segmentation map')
         self.parser.add_argument('--resize_or_crop', type=str, default='scale_width', help='scaling and cropping of images at load time [resize_and_crop|crop|scale_width|scale_width_and_crop]')
         self.parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')        
         self.parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation') 
@@ -51,7 +52,7 @@ class BaseOptions():
         self.parser.add_argument('--niter_fix_global', type=int, default=0, help='number of epochs that we only train the outmost local enhancer')        
 
         # for instance-wise features
-        self.parser.add_argument('--no_segmentation', action='store_true', help='if specified, do *not* load binary segmentation maps')        
+        self.parser.add_argument('--no_segmentation', action='store_true', help='if specified, do *not* load segmentation maps')        
         self.parser.add_argument('--instance_feat', action='store_true', help='if specified, add encoded instance features as input')
         self.parser.add_argument('--label_feat', action='store_true', help='if specified, add encoded label features as input')        
         self.parser.add_argument('--feat_num', type=int, default=3, help='vector length for encoded features')        
