@@ -50,7 +50,12 @@ class AlignedDataset(BaseDataset):
             transform_B = get_transform(self.opt, params)      
             B_tensor = transform_B(B)                         
 
-        input_dict = {'input': A_tensor, 'target': B_tensor, 'path': A_path}
+        if not self.opt.no_segmentation:
+            seg_path = self.seg_paths[index]
+            seg = Image.open(seg_path)
+            seg_tensor = transform_A(seg.convert('RGB'))
+
+        input_dict = {'input': A_tensor, 'seg': seg_tensor, 'target': B_tensor, 'path': A_path}
 
         return input_dict
 

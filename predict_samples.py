@@ -42,19 +42,23 @@ for i,data in enumerate(dataset):
     source = data['input'].cpu().data.numpy()
     generated = generated.cpu().data.numpy()
     target = data['target'].cpu().data.numpy()
+    seg = data['seg'].cpu().data.numpy()
 
     # [N, H, W, C]
     source = np.transpose(source, (0,2,3,1))
     generated = np.transpose(generated, (0,2,3,1))
     target = np.transpose(target, (0,2,3,1))
+    seg = np.transpose(seg, (0,2,3,1))
 
     # scale from [-1,1] to [0,255]
     source = ((source * 0.5 + 0.5) * 255.0).astype(np.uint8)
     generated = ((generated * 0.5 + 0.5) * 255.0).astype(np.uint8)
     target  =  ((target * 0.5 + 0.5) * 255.0).astype(np.uint8)
+    if not opt.no_segmentation:
+        seg  =  ((seg * 0.5 + 0.5) * 255.0).astype(np.uint8)
 
     # concatenate along width
-    images = np.concatenate((source[0], generated[0], target[0]), 1)
+    images = np.concatenate((source[0], generated[0], target[0], seg[0]), 1)
     images = Image.fromarray(images, 'RGB')
     filename = data['path'][0].split('/')[-1]
     images.save(os.path.join(save_img_path, filename))
