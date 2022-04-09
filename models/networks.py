@@ -133,19 +133,23 @@ class VGGLoss(nn.Module):
 class SegmentationLoss(nn.Module):
     def __init__(self, opt):
         super(SegmentationLoss, self).__init__()
+        self.opt = opt
         self.unet = UNetSegmentation(n_channels=opt.unet_input_channels,n_classes=opt.unet_n_classes)
-        self.unet.load_state_dict(torch.load(opt.unet_model_weights))
+        self.unet.load_state_dict(torch.load(opt.unet_model_weights), strict=False)
         if len(opt.gpu_ids) != 0 :
             self.unet = self.unet.cuda()
         self.unet.eval()
-        self.criterion = nn.CrossEntropyLoss(torch.as_tensor([1.0,2]).to('cuda' if len(opt.gpu_ids) != 0 else 'cpu'))
+        weight = [1.0]
+        for _ in range(opt.unet_n_classes-1):
+            weight.append(2)
+        self.criterion = nn.CrossEntropyLoss(torch.as_tensor(weight).to('cuda' if len(opt.gpu_ids) != 0 else 'cpu'))
 
     def forward(self, x, mask_true):
         masks_pred = self.unet(x)
         true_masks = mask_true[:,0]
         loss = self.criterion(masks_pred, true_masks) \
                 + dice_loss(F.softmax(masks_pred, dim=1).float(),
-                            F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
+                            F.one_hot(true_masks, self.opt.unet_n_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True)
         pred_to_save = masks_pred.argmax(dim=1,keepdim=True).repeat(1,3,1,1) * 2 - 1 
         return 10 * loss, pred_to_save

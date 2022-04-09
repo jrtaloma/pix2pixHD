@@ -1,2 +1,2 @@
 ### Using RGB images only. Train with U-Net.
-python train.py --name brainmetshare_t1pre_t2flair --gpu_ids 2,3 --batchSize 32 --dataroot ./datasets/stanford_release_brainmask/axial/t1pre_t2flair --netG unet --label_nc 0 --class_labels 0 255 --resize_or_crop none --use_weighted_random_sampler
+python train.py --name brainmetshare_seg_t1pre_t2flair --gpu_ids 2,3 --batchSize 32 --dataroot ./datasets/stanford_release_brainmask/axial/t1pre_t2flair --netG unet --label_nc 0 --class_labels 0 255 --resize_or_crop none --use_weighted_random_sampler --unet_model_weights ./models/unet/BrainMetShare_T2_FLAIR/checkpoint_epoch29.pth --unet_input_channels 3 --unet_n_classes 2

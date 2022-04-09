@@ -33,4 +33,9 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--no_lsgan', action='store_true', help='do *not* use least square GAN, if false, use vanilla GAN')
         self.parser.add_argument('--pool_size', type=int, default=0, help='the size of image buffer that stores previously generated images')
 
+        # for unet segmentation
+        self.parser.add_argument('--unet_model_weights', type=str, help='which epoch to load?')
+        self.parser.add_argument('--unet_input_channels', type=int, default=3, help='number of unet input channels')
+        self.parser.add_argument('--unet_n_classes', type=int, default=2, help='number of unet classes')
+
         self.isTrain = True

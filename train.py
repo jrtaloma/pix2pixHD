@@ -67,7 +67,10 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         save_fake = total_steps % opt.display_freq == display_delta
 
         ############## Forward Pass ######################
-        losses, generated = model(Variable(data['input']), Variable(data['seg']), Variable(data['target']), infer=save_fake)
+        if save_fake:
+            losses, generated, _ = model(Variable(data['input']), Variable(data['seg']), Variable(data['target']), infer=save_fake)
+        else:
+            losses, _, _ = model(Variable(data['input']), Variable(data['seg']), Variable(data['target']), infer=save_fake)
 
         # sum per device losses
         losses = [ torch.mean(x) if not isinstance(x, int) else x for x in losses ]
@@ -75,7 +78,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
 
         # calculate final loss scalar
         loss_D = (loss_dict['D_fake'] + loss_dict['D_real']) * 0.5
-        loss_G = loss_dict['G_GAN'] + loss_dict.get('G_GAN_Feat',0) + loss_dict.get('G_VGG',0)
+        loss_G = loss_dict['G_GAN'] + loss_dict.get('G_GAN_Feat',0) + loss_dict.get('G_VGG',0) + loss_dict.get('Segmentation_Loss',0)
 
         ############### Backward Pass ####################
         # update generator weights
