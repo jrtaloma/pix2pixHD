@@ -32,8 +32,9 @@ max_images = 100
 rng = np.random.RandomState(0)
 indexes = rng.randint(0, len(dataset), (max_images))
 
-# color palette
+# color palette with black background
 palette = rng.randint(0, 256, (256, 3), dtype=np.uint8)
+palette[0] = [0, 0, 0]
 
 for i,data in enumerate(dataset):
     if not i in indexes:
