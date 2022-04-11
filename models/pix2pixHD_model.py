@@ -28,7 +28,7 @@ class Pix2PixHDModel(BaseModel):
         ##### define networks        
         # Generator network
         netG_input_nc = input_nc   
-        if not opt.no_segmentation:
+        if not opt.no_instance:
             netG_input_nc += 1                   
         self.netG = networks.define_G(netG_input_nc, opt.output_nc, opt.ngf, opt.netG, 
                                       opt.n_downsample_global, opt.n_blocks_global, opt.n_local_enhancers, 
@@ -38,7 +38,7 @@ class Pix2PixHDModel(BaseModel):
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
             netD_input_nc = input_nc + opt.output_nc
-            if not opt.no_segmentation:
+            if not opt.no_instance:
                 netD_input_nc += 1
             self.netD = networks.define_D(netD_input_nc, opt.ndf, opt.n_layers_D, opt.norm, use_sigmoid, 
                                           opt.num_D, not opt.no_ganFeat_loss, gpu_ids=self.gpu_ids)
@@ -112,8 +112,8 @@ class Pix2PixHDModel(BaseModel):
     def encode_input(self, input_image, seg_map=None, target_image=None, infer=False):             
         input_image = input_image.data.cuda()
 
-        # get edges from segmentation map
-        if not self.opt.no_segmentation:
+        # get edges from instance map
+        if not self.opt.no_instance:
             seg_map = seg_map.data.cuda()
             edge_map = self.get_edges(seg_map)
             input_image = torch.cat((input_image, edge_map), dim=1)

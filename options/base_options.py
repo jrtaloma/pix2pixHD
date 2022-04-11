@@ -37,6 +37,7 @@ class BaseOptions():
         self.parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation') 
         self.parser.add_argument('--nThreads', default=2, type=int, help='# threads for loading data')                
         self.parser.add_argument('--max_dataset_size', type=int, default=float("inf"), help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.')
+        self.parser.add_argument('--no_segmentation', action='store_true', help='if specified, do *not* load segmentation maps')
 
         # for displays
         self.parser.add_argument('--display_winsize', type=int, default=512,  help='display window size')
@@ -52,7 +53,7 @@ class BaseOptions():
         self.parser.add_argument('--niter_fix_global', type=int, default=0, help='number of epochs that we only train the outmost local enhancer')        
 
         # for instance-wise features
-        self.parser.add_argument('--no_segmentation', action='store_true', help='if specified, do *not* load segmentation maps')        
+        self.parser.add_argument('--no_instance', action='store_true', help='if specified, do *not* add instance map as input')        
         self.parser.add_argument('--instance_feat', action='store_true', help='if specified, add encoded instance features as input')
         self.parser.add_argument('--label_feat', action='store_true', help='if specified, add encoded label features as input')        
         self.parser.add_argument('--feat_num', type=int, default=3, help='vector length for encoded features')        

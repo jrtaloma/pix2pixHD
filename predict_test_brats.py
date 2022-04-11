@@ -12,7 +12,7 @@ opt.nThreads = 1   # test code only supports nThreads = 1
 opt.batchSize = 1  # test code only supports batchSize = 1
 opt.serial_batches = True  # no shuffle
 opt.no_flip = True  # no flip
-opt.use_encoded_image = True # load encoded image for evaluation
+opt.use_encoded_image = False # do not load encoded image for evaluation
 
 data_loader = CreateDataLoader(opt)
 dataset = data_loader.load_data()
@@ -23,7 +23,7 @@ model = create_model(opt)
 if opt.verbose:
     print(model)
 
-assert opt.name in ['brats_t1_t1ce', 'brats_t1_t2'], '{opt.name} is not supported'
+assert opt.name in ['brats_t1_t1ce', 'brats_t1_t2', 'brats_seg_t1_t1ce', 'brats_seg_t1_t2'], '{opt.name} is not supported'
 source_modality = 't1'
 target_modality = 't1ce' if opt.name == 'brats_t1_t1ce' else 't2'
 
@@ -34,7 +34,7 @@ if not os.path.isdir(save_img_path):
 
 for i,data in enumerate(dataset):
     with torch.no_grad():
-        generated = model.inference(data['input'], data['target'])
+        generated = model.inference(data['input'], data['seg'], data['target'])
     print('[{}/{}]: process image... {}'.format(i+1, len(dataset), data['path']))
 
     source = data['input'].cpu().data.numpy()
