@@ -25,7 +25,7 @@ if opt.verbose:
 
 assert opt.name in ['brats_t1_t1ce', 'brats_t1_t2', 'brats_seg_t1_t1ce', 'brats_seg_t1_t2'], '{opt.name} is not supported'
 source_modality = 't1'
-target_modality = 't1ce' if opt.name == 'brats_t1_t1ce' else 't2'
+target_modality = 't1ce' if (opt.name == 'brats_t1_t1ce' or opt.name == 'brats_seg_t1_t1ce') else 't2'
 
 save_img_path = os.path.join('./pred', opt.name, opt.phase)
 if not os.path.isdir(save_img_path):

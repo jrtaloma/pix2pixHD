@@ -25,7 +25,7 @@ if opt.verbose:
 
 assert opt.name in ['brainmetshare_t1pre_t1post', 'brainmetshare_t1pre_t2flair', 'brainmetshare_seg_t1pre_t1post', 'brainmetshare_seg_t1pre_t2flair'], '{opt.name} is not supported'
 source_modality = '1'
-target_modality = '2' if opt.name == 'brainmetshare_t1pre_t1post' else '3'
+target_modality = '2' if (opt.name == 'brainmetshare_t1pre_t1post' or opt.name == 'brainmetshare_seg_t1pre_t1post') else '3'
 
 save_img_path = os.path.join('./pred', opt.name, opt.phase)
 if not os.path.isdir(save_img_path):
