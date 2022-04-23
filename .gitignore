@@ -39,7 +39,6 @@ test/data/legacy_serialized.pt
 *.DS_Store
 *~
 demo.py
-datasets/BraTS_2019/
-datasets/stanford_release_brainmask/
+datasets/**/*
 out*
 pred
